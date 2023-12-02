@@ -12,6 +12,13 @@ class keydefaultdict(defaultdict):
 with open("input.txt", "r") as file:
     data = file.read().splitlines()
 
+score = 0
+for item in [re.findall("\d", s) for s in data]:
+    first, last = item[0], item[-1]
+    score += int(first + last)
+
+print(score)
+
 str_to_num = {
     "one": 1,
     "two": 2,
@@ -26,17 +33,10 @@ str_to_num = {
 str_to_num = keydefaultdict(lambda x : int(x), str_to_num)
 
 matches = [re.findall(r"(?=(one|two|three|four|five|six|seven|eight|nine|\d))", s) for s in data] 
-print(matches)
 
-ret = []
-for match in matches:
-    if len(match) > 1:
-        first, last = match[0], match[-1]
-        first, last = str_to_num[first], str_to_num[last]
-        ret.append(10*first+last)
-    else:
-        num = str_to_num[match[0]]
-        ret.append(10*num+num)
+score = 0
+for item in matches:
+    first, last = str_to_num[item[0]], str_to_num[item[-1]]
+    score += 10*first + last
 
-print(ret)
-print(sum(ret))
+print(score)
