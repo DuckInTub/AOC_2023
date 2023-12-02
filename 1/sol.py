@@ -13,7 +13,7 @@ with open("input.txt", "r") as file:
     data = file.read().splitlines()
 
 score = 0
-for item in [re.findall("\d", s) for s in data]:
+for item in [re.findall(r"\d", s) for s in data]:
     first, last = item[0], item[-1]
     score += int(first + last)
 
