@@ -11,7 +11,10 @@ class Map:
                 return x+out_start-in_start
         return x
 
-    def yield_ranges(self, seed_ranges, start_i):
+    def yield_ranges(self, seed_ranges):
+        yield from self.yield_ranges_helper(seed_ranges, 0)
+
+    def yield_ranges_helper(self, seed_ranges, start_i):
         # If some ranges did't get mapped, yield them as they are
         # and we are done.
         if start_i >= len(self.group):
@@ -27,7 +30,7 @@ class Map:
             # Recursively map the splits from the before-portion
             # if there are elements in before
             if before[1] > before[0]:
-                yield from self.yield_ranges([before], start_i+1)
+                yield from self.yield_ranges_helper([before], start_i+1)
             # If there is overlap that can be mapped
             # map it, and we are done with that portion of the range.
             if overlap[1] > overlap[0]:
@@ -37,7 +40,7 @@ class Map:
             # Recursively map the splits from the after-portion
             # if there are elements in after
             if after[1] > after[0]:
-                yield from self.yield_ranges([after], start_i+1)
+                yield from self.yield_ranges_helper([after], start_i+1)
                 
 
 with open("input.txt", "r") as file:
@@ -65,12 +68,12 @@ out = []
 for seed_range in seed_ranges:
     seed_range = [seed_range]
     for mp in maps:
-        seed_range = list(mp.yield_ranges(seed_range, 0))
+        seed_range = list(mp.yield_ranges(seed_range))
     out.append(seed_range)
 
-mn = float("Infinity")
+mn = float("inf")
 for group in out:
-    for r in group:
-        mn = min(mn, r[0])
+    for range_ in group:
+        mn = min(mn, range_[0])
 
 print(f"Part 2: {mn}")
