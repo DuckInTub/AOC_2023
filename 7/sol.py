@@ -2,10 +2,9 @@ from collections import Counter
 
 def get_hand_type(hand):
     count = Counter(hand)
+    max_count, next_count = max(count.values()), -1
     if len(count.values()) > 1:
         max_count, next_count = sorted(count.values(), reverse=True)[:2]
-    else:
-        max_count, next_count = max(count.values()), -1
 
     # Five of a kind
     if max_count == 5:
@@ -29,18 +28,16 @@ def get_hand_type(hand):
     return 1
 
 def hand_key(handbid):
-    values = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"]
-    values = list(reversed(values))
+    values = ["A", "K", "Q", "J", "T", "9", "8", "7", "6", "5", "4", "3", "2"][::-1]
     hand, bid = handbid
-    t = get_hand_type(hand)
+    type_ = get_hand_type(hand)
     order = [values.index(card) for card in hand]
-    return (t, order)
+    return (type_, order)
 
 with open("input.txt", "r") as file:
     data = [line.split() for line in file.read().splitlines()]
 
 data = list(sorted(data, key=hand_key))
-
 score = 0
 for i, handbid in enumerate(data):
     score += (i+1)*int(handbid[1])

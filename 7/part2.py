@@ -1,13 +1,13 @@
 from collections import Counter
 
 def get_hand_type(hand):
-    count = Counter(hand.replace("J", ""))
     if hand == "JJJJJ":
         return 7
+
+    count = Counter(hand.replace("J", ""))
+    max_count, next_count = max(count.values()), -1
     if len(count.values()) > 1:
         max_count, next_count = sorted(count.values(), reverse=True)[:2]
-    else:
-        max_count, next_count = max(count.values()), -1
 
     if "J" in hand:
         max_count += Counter(hand)["J"]
@@ -34,8 +34,7 @@ def get_hand_type(hand):
     return 1
 
 def hand_key(handbid):
-    values = ["A", "K", "Q", "T", "9", "8", "7", "6", "5", "4", "3", "2", "J"]
-    values = list(reversed(values))
+    values = ["A", "K", "Q", "T", "9", "8", "7", "6", "5", "4", "3", "2", "J"][::-1]
     hand, bid = handbid
     t = get_hand_type(hand)
     order = [values.index(card) for card in hand]
@@ -43,9 +42,6 @@ def hand_key(handbid):
 
 with open("input.txt", "r") as file:
     data = [line.split() for line in file.read().splitlines()]
-
-assert get_hand_type("TTTTJ") == 7
-assert get_hand_type("TTKKJ") == 5
 
 data = list(sorted(data, key=hand_key))
 score = 0
