@@ -1,37 +1,17 @@
 from collections import Counter
 
 def get_hand_type(hand):
-    if hand == "JJJJJ":
-        return 7
-
     count = Counter(hand.replace("J", ""))
-    max_count, next_count = max(count.values()), -1
-    if len(count.values()) > 1:
-        max_count, next_count = sorted(count.values(), reverse=True)[:2]
+    J_count = len(["J" for char in hand if char == "J"])
 
-    if "J" in hand:
-        max_count += Counter(hand)["J"]
-
-    # Five of a kind
-    if max_count == 5:
+    if not len(count.values()) > 1 or J_count == 5:
         return 7
-    # Four of a kind
-    if max_count == 4:
-        return 6
-    # Full house
-    if max_count == 3 and next_count == 2:
-        return 5
-    # Three of a kind
-    if max_count == 3:
-        return 4
-    # Two pairs
-    if max_count == 2 and next_count == 2:
-        return 3
-    # One pair
-    if max_count == 2:
-        return 2
-    # Junk
-    return 1
+
+    max_count, next_count = sorted(count.values(), reverse=True)[:2]
+    max_count += J_count
+
+    hand_types = [(1, 1), (2, 1), (2, 2), (3, 1), (3, 2), (4, 1), (5, 0)]
+    return hand_types.index((max_count, next_count))
 
 def hand_key(handbid):
     values = ["A", "K", "Q", "T", "9", "8", "7", "6", "5", "4", "3", "2", "J"][::-1]
