@@ -1,48 +1,18 @@
-from copy import deepcopy
+from itertools import pairwise
 
-def generate_rows(history):
-    hist = deepcopy(history)
-    rows = [hist]
-    row = hist
-    while not all(x == 0 for x in rows[-1]):
-        new_row = []
-        for i in range(len(row) - 1):
-            first, second = row[i], row[i+1]
-            diff = second - first
-            new_row.append(diff)
-        rows.append(new_row)
-        row = new_row
+def get_next(seq):
+    if all(x == 0 for x in seq):
+        return 0
+    return seq[-1] + get_next([p2 - p1 for p1, p2 in pairwise(seq)])
 
-    return rows
-
-def find_nexts(history):
-    rows = generate_rows(history)
-
-    for i, row in list(enumerate(rows[1:]))[::-1]:
-        last = row[-1]
-        over = rows[i][-1]
-        rows[i].append(last + over)
-
-    return rows[0][-1]
-
-def find_prevs(history):
-    rows = generate_rows(history)
-
-    for i, row in list(enumerate(rows[1:]))[::-1]:
-        first = row[0]
-        over = rows[i][0]
-        # over - x = first
-        # x = over - first
-        rows[i].insert(0, over - first)
-
-    return rows[0][0]
+def get_prev(seq):
+    if all(x == 0 for x in seq):
+        return 0
+    return seq[0] - get_prev([p2 - p1 for p1, p2 in pairwise(seq)])
 
 with open("input.txt", "r") as file:
-    data = [[int(x) for x in line.split()] for line in file.read().splitlines()]
-    old_data = deepcopy(data)
+    data = [[int(x) for x in line.split()] for line in file.readlines()]
 
-
-print(sum(find_nexts(history) for history in data))
-print(sum(find_prevs(history) for history in data))
-
-assert old_data == data, "Some function is mutating by reference"
+score = lambda f, d : sum(map(f, d))
+print(score(get_next, data))
+print(score(get_prev, data))
