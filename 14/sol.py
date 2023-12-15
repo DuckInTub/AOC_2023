@@ -1,3 +1,6 @@
+from functools import reduce
+
+
 def roll_row_east(row):
     indices = []
     curr_stones = 0
@@ -55,6 +58,12 @@ def north_strain(array):
 
     return strain
 
+def uid(array):
+    rows = []
+    bit_or = lambda x, y : x | y
+    for _, row in enumerate(array):
+        rows.append(reduce(bit_or, [2 ** i for i, char in enumerate(row) if char == "O"], 0))
+    return tuple(rows)
 
 
 with open(0) as file:
@@ -71,18 +80,25 @@ print(f"Part 1: {p1}")
 
 i = 0
 limit = 1_000_000_000
-seen = []
+seen = {}
 last = []
 cycled = False
-spinned = data
-back_len = 10
+spun = data
+back_len = 5
 while i < limit:
-    spinned = spin_cycle(spinned)
-    last = last[-(back_len-1):]
-    last.append(spinned)
+    i += 1
+    spun = spin_cycle(spun)
 
-    if not cycled and last in seen:
-        prevI = seen.index(last) + back_len + 1
+    if cycled:
+        continue
+
+    key = uid(spun)
+    last = last[-(back_len-1):]
+    last.append(key)
+    key = tuple(last)
+
+    if key in seen:
+        prevI = seen[key]
         cyc_len = i - prevI
         print(f"CYCLE FOUND OF LEN {cyc_len}, AFTER {i} ITERATIONS!")
         # i + X*cyc_len < limit
@@ -91,9 +107,8 @@ while i < limit:
         print(f"NEW i {i}")
         cycled = True
 
-    i += 1
     if len(last) == back_len:
-        seen.append(last)
-    
-p2 = north_strain(spinned)
+        seen[key] = i
+
+p2 = north_strain(spun)
 print(f"Part 2: {p2}")
