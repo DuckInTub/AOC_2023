@@ -1,31 +1,22 @@
 from functools import reduce
-
+from time import perf_counter
+from timeit import timeit
+import multiprocessing as mp
 
 def roll_row_east(row):
-    indices = []
-    curr_stones = 0
-    new = []
-    
-    for i, char in enumerate(row):
-        if char == "O":
-            curr_stones += 1
-        if char == "#":
-            indices += [i - x - 1 for x in range(curr_stones)]
-            curr_stones = 0
-    
-    indices += [i - x for x in range(curr_stones)]
-    new = []
-    for i, char in enumerate(row):
-        if char == "#":
-            new.append("#")
-            continue
-        if i in indices:
-            new.append("O")
-            continue
-        new.append(".")
+    stone_nrs = [sum(1 for ch in group if ch == "O") for group in "".join(row).split("#")]
 
-    assert len(new) == len(row)
-    return new
+    curr_stone_group = 0
+    new_row = [ch if ch != "O" else "." for ch in row] + ["#"]
+    for i, ch in enumerate(new_row):
+        if ch == "#":
+            for x in range(stone_nrs[curr_stone_group]):
+                new_row[i-x-1] = "O"
+            curr_stone_group += 1
+    
+    new_row = new_row[:-1]
+    assert len(new_row) == len(row)
+    return "".join(new_row)
 
 def transpose(array):
     return [col for col in zip(*array)]
@@ -62,9 +53,16 @@ def uid(array):
     rows = []
     bit_or = lambda x, y : x | y
     for _, row in enumerate(array):
-        rows.append(reduce(bit_or, [2 ** i for i, char in enumerate(row) if char == "O"], 0))
+        rows.append(
+        reduce(bit_or, [
+            2 ** i 
+            for i, char in enumerate(row)
+            if char == "O"
+        ], 0))
     return tuple(rows)
 
+#               "0123456789"
+# print(roll_row_east(".O.#.OO..."))
 
 with open(0) as file:
     data = file.read().splitlines()
@@ -72,19 +70,21 @@ with open(0) as file:
 p1 = north_strain(roll_north(data))
 print(f"Part 1: {p1}")
 
-# The spin-cycle will eventually actually cycle
-# so for each spin-cycle add that to a list
-# then always check if some number of previous cycles match
-# if that is the case we can add the length of that cycle to i
-# and then continue until we reach the limit of 1_000_000_000
+# The spin-cycle will eventually "cycle" (dumb names)
+# so for each spin-cycle add the state to a dict,
+# then always check if it matches a previous state.
+# If that is the case: we can add the length of that cycle to i,
+# until we are just under 1_000_000_000, and then continue normally.
+# NOTE: The spin-cycle is completly deterministic of the grid state,
+# hence if we ever se the same grid state again,
+# we now we can repeat cyclically. The uid() function gives
+# us a unique tuple for a given state, so we can check for states.
 
 i = 0
 limit = 1_000_000_000
 seen = {}
-last = []
 cycled = False
 spun = data
-back_len = 5
 while i < limit:
     i += 1
     spun = spin_cycle(spun)
@@ -93,10 +93,6 @@ while i < limit:
         continue
 
     key = uid(spun)
-    last = last[-(back_len-1):]
-    last.append(key)
-    key = tuple(last)
-
     if key in seen:
         prevI = seen[key]
         cyc_len = i - prevI
@@ -107,8 +103,7 @@ while i < limit:
         print(f"NEW i {i}")
         cycled = True
 
-    if len(last) == back_len:
-        seen[key] = i
+    seen[key] = i
 
 p2 = north_strain(spun)
 print(f"Part 2: {p2}")
