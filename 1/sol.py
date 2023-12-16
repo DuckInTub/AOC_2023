@@ -9,7 +9,7 @@ class keydefaultdict(defaultdict):
             ret = self[key] = self.default_factory(key)
             return ret
 
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = file.read().splitlines()
 
 score = 0

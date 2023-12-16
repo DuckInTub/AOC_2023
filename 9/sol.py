@@ -10,7 +10,7 @@ def get_prev(seq):
         return 0
     return seq[0] - get_prev([p2 - p1 for p1, p2 in pairwise(seq)])
 
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = [[int(x) for x in line.split()] for line in file.readlines()]
 
 score = lambda f, d : sum(map(f, d))

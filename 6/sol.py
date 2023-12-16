@@ -6,7 +6,7 @@ def pq(p, q):
     Q = sqrt(D ** 2 - q)
     return (D + Q, D - Q)
 
-with open("test.txt", "r") as file:
+with open(0) as file:
     data = file.read().splitlines()
     times = [int(x) for x in re.findall(r"\d+", data[0])]
     dists = [int(x) for x in re.findall(r"\d+", data[1])]

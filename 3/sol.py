@@ -4,7 +4,7 @@ from math import prod
 SYMBOLS = set()
 NUMS = set()
 GEARS = set()
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = file.read().splitlines()
     for r, line in enumerate(data):
         for c, char in enumerate(line):

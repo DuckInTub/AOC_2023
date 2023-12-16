@@ -3,7 +3,7 @@ import re
 
 allowed = {'r' : 12, 'g' : 13, 'b' : 14}
 
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = file.read().splitlines()
 
 possible = []

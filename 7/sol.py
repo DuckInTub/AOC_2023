@@ -17,7 +17,7 @@ def hand_key(handbid):
     order = [values.index(card) for card in hand]
     return (type_, order)
 
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = [line.split() for line in file.read().splitlines()]
 
 data = list(sorted(data, key=hand_key))

@@ -9,7 +9,7 @@ def loop_insts(insts):
         if i >= len(insts):
             i = 0
 
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = file.read().splitlines()
     insts = data[0]
     MAP = data[2:]

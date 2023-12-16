@@ -43,7 +43,7 @@ class Map:
                 yield from self.yield_ranges_helper([after], start_i+1)
                 
 
-with open("input.txt", "r") as file:
+with open(0) as file:
     data = file.read().split("\n\n")
     seeds = [int(x) for x in re.findall(r"\d+", data[0])]
     groups = []
