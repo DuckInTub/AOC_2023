@@ -1,4 +1,5 @@
 from collections import deque
+from multiprocessing import Pool
 
 UP = (-1, 0)
 DOWN = (1, 0)
@@ -77,23 +78,22 @@ def show(points, array):
     return img
 
 with open(0) as file:
-    data = file.read().splitlines()
+    DATA = file.read().splitlines()
 
-p1 = energized(data, (0, 0), RIGHT)
+p1 = energized(DATA, (0, 0), RIGHT)
 print(f"Part 1: {p1}")
 
-
 start_confs = set()
-for c in range(len(data[0])):
+for c in range(len(DATA[0])):
     start_confs.add(((0, c), DOWN))
-    start_confs.add(((len(data)-1, c), UP))
+    start_confs.add(((len(DATA)-1, c), UP))
 
-for r in range(len(data)):
+for r in range(len(DATA)):
     start_confs.add(((r, 0), RIGHT))
-    start_confs.add(((r, len(data[0])-1), LEFT))
+    start_confs.add(((r, len(DATA[0])-1), LEFT))
 
-mx = 0
-for start, facing in start_confs:
-    mx = max(mx, energized(data, start, facing))
+start_confs = [(DATA, st, fc) for st, fc in start_confs]
+with Pool(8) as pool:
+    mx = max(pool.starmap(energized, start_confs))
 
 print(f"Part 2: {mx}")
