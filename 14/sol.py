@@ -52,7 +52,7 @@ def north_strain(array):
 def uid(array):
     rows = []
     bit_or = lambda x, y : x | y
-    for _, row in enumerate(array):
+    for row in array:
         rows.append(
         reduce(bit_or, [
             2 ** i 
@@ -60,6 +60,13 @@ def uid(array):
             if char == "O"
         ], 0))
     return tuple(rows)
+
+def strain_uid(uid : tuple[int]):
+    strain = 0
+    for i, bits in enumerate(reversed(uid)):
+        nr_O = bits.bit_count()
+        strain += nr_O*(i+1)
+    return strain
 
 #               "0123456789"
 # print(roll_row_east(".O.#.OO..."))
@@ -89,21 +96,18 @@ while i < limit:
     i += 1
     spun = spin_cycle(spun)
 
-    if cycled:
-        continue
-
     key = uid(spun)
     if key in seen:
         prevI = seen[key]
         cyc_len = i - prevI
         print(f"CYCLE FOUND OF LEN {cyc_len}, AFTER {i} ITERATIONS!")
-        # i + X*cyc_len < limit
-        repeat = (limit - i) // cyc_len
-        i += cyc_len * repeat
-        print(f"NEW i {i}")
-        cycled = True
+        rev_seen = {value:key for key, value in seen.items()}
+        eq_final_i = (limit - prevI) % cyc_len + prevI
+        print(f"EQUIVALENT INDEX {eq_final_i}")
+        final_uid = rev_seen[eq_final_i]
+        p2 = strain_uid(final_uid)
+        break
 
     seen[key] = i
 
-p2 = north_strain(spun)
 print(f"Part 2: {p2}")
