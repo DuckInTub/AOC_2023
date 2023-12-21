@@ -21,7 +21,6 @@ with open(0) as file:
     data = [line.split() for line in file.read().splitlines()]
 
 data = list(sorted(data, key=hand_key))
-print(list(d[0] for d in data))
 score = 0
 for i, handbid in enumerate(data):
     score += (i+1)*int(handbid[1])

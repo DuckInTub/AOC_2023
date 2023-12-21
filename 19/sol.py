@@ -1,10 +1,10 @@
+from copy import deepcopy
+from math import prod
+
 class Rule:
     def __init__(self, string : str) -> None:
-        i = string.index("{")
-        self.name = string[:i]
-        rules = string.split(",")
-        rules[0] = rules[0][i+1:]
-        rules[-1] = rules[-1].replace("}", "")
+        name, rules = parse_rule(string)
+        self.name = name
         self.rules = rules
     
     def apply(self, part):
@@ -12,11 +12,9 @@ class Rule:
             if ":" in rule:
                 r, go = rule.split(":")
                 key, value = r[0], int(r[2:])
-                if "<" in r:
-                    if part[key] < value:
+                if "<" in r and part[key] < value:
                         return go
-                if ">" in r:
-                    if part[key] > value:
+                if ">" in r and part[key] > value:
                         return go
             else:
                 return rule
@@ -32,6 +30,48 @@ def parse_part(part):
         key, value = thing.split("=")
         ret[key] = int(value)
     return ret
+
+def parse_rule(rule):
+    i = rule.index("{")
+    name = rule[:i]
+    rule = rule[i+1:-1]
+    rule = [r for r in rule.split(",")]
+    return name, rule
+
+def accepted(rules):
+    def inner(item, rule_key="in"):
+        if rule_key == "R":
+            return 0
+        if rule_key == "A":
+            return prod(high-low+1 for low, high in item.values())
+        
+        rule = rules[rule_key]
+        total = 0
+        for part in rule:
+            if ":" not in part:
+                total += inner(deepcopy(item), part)
+                break
+            
+            cond, nxt = part.split(":")
+            key = cond[0]
+            value = int(cond[2:])
+            low, high = item[key]
+
+            if ">" in cond:
+                new = deepcopy(item)
+                new[key] = (max(low, value+1), high)
+                total += inner(new, nxt)
+                item[key] = (low, value)
+            
+            if "<" in cond:
+                new = deepcopy(item)
+                new[key] = (low, min(high, value-1))
+                total += inner(new, nxt)
+                item[key] = (value, high)
+        
+        return total
+
+    return inner({key:(1, 4000) for key in "xmas"})
 
 with open(0) as file:
     rules_, parts = file.read().rstrip().split("\n\n")
@@ -56,6 +96,8 @@ for part in parts:
 
 print(f"Part 1: {p1}")
 
-# NOTE: Part2 recursively map over intervals of possible values in parts.
-# p2 = None
-# print(f"Part 2: {p2}")
+# NOTE: Part 2 map over intervals of possible values in parts.
+rules = {parse_rule(r)[0] : parse_rule(r)[1] for r in rules_.splitlines()}
+assert "in" in rules
+p2 = accepted(rules)
+print(f"Part 2: {p2}")

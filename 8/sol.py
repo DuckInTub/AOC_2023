@@ -20,8 +20,6 @@ for line in MAP:
     edges[at]["L"] = left
     edges[at]["R"] = right
 
-print(edges)
-
 insts = loop_insts(insts)
 i = 0
 at = "AAA"

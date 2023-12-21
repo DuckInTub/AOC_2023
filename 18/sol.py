@@ -70,4 +70,5 @@ corners = get_corners(hex_insts)
 perimter_points = nr_perimter_points(corners)
 area = polygon_area(corners)
 p2 = nr_interior_points(area, perimter_points) + perimter_points
+print(perimter_points//2+area)
 print(f"Part 2: {p2}")
