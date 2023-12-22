@@ -1,126 +1,110 @@
 from collections import deque
+from copy import deepcopy
 from multiprocessing import Pool
-from time import perf_counter
 
 class Rock:
     def __init__(self, string : str):
-        fr, to = string.split("~")
-        fr = tuple(int(x) for x in fr.split(","))
-        to = tuple(int(x) for x in to.split(","))
-        diff = [f != t for f, t in zip(fr, to)]
-        d = -1
-        if True in diff:
-            d = diff.index(True)
-        if d == -1:
-            self.pos = set([fr])
-            self.z = fr[2]
-            return
-        
-        self.pos = set()
-        for i in range(to[d] - fr[d] + 1):
-            point = list(fr)
-            point[d] += i
-            self.pos.add(tuple(point))
-        self.z = min(p[2] for p in self.pos)
-    
+        sx, sy, sz, ex, ey, ez = map(int, string.replace("~", ",").split(","))
+        self.start = (sx, sy, sz)
+        self.end = (ex, ey, ez)
+
     def get_z(self):
-        return self.z
+        return self.start[2]
 
     def set_z(self, new_z):
-        new_pos = set()
-        for p in self.pos:
-            p = list(p)
-            d = p[2] - self.z
-            p[2] = new_z + d
-            new_pos.add(tuple(p))
-        
-        assert len(new_pos) == len(self.pos)
-        self.z = new_z
-        self.pos = set(new_pos)
+        sx, sy, sz = self.start
+        ex, ey, ez = self.end
+        d = ez - sz
+        self.start = (sx, sy, new_z)
+        self.end = (ex, ey, new_z+d)
+        return new_z
+    
+    def nr(self):
+        return 1 + sum(e - s for e, s in zip(self.end, self.start))
+    
+    def get_points(self):
+        points = set()
+        for x in range(self.start[0], self.end[0] + 1):
+            for y in range(self.start[1], self.end[1] + 1):
+                for z in range(self.start[2], self.end[2] + 1):
+                    points.add((x, y, z))
+        return points
+    
+    def overlap(self, other):
+        return not any([
+            other.end[0] < self.start[0],
+            other.start[0] > self.end[0],
+            other.end[1] < self.start[1],
+            other.start[1] > self.end[1],
+            other.end[2] < self.start[2],
+            other.start[2] > self.end[2],
+        ])
+    
+    def fall(self, stopped, floor : int):
+        # Not inside the floor and doesn't intersect stopped blocks
+        while self.get_z() != floor and not self.get_points() & stopped:
+            self.set_z(self.get_z() - 1)
+        self.set_z(self.get_z() + 1)
+        return self.get_z()
     
     def __str__(self):
-        return f"{self.pos}"
+        return f"Start: {self.start}, End: {self.end}"
     
 with open(0) as file:
     data = file.read().rstrip().splitlines()
     rocks = [Rock(line) for line in data]
+    number_rock_blocks = sum(r.nr() for r in rocks)
     rocks.sort(key=lambda x : x.get_z())
 
-start = perf_counter()
-min_x = min(min(p[0] for p in r.pos) for r in rocks)
-min_y = min(min(p[1] for p in r.pos) for r in rocks)
-
-max_x = max(max(p[0] for p in r.pos) for r in rocks)
-max_y = max(max(p[1] for p in r.pos) for r in rocks)
-
-stop = set((x, y, 0) for x in range(min_x, max_x+1) for y in range(min_y, max_y+1))
-floor_len = len(stop)
-
-for rock in rocks:
-    while not any(p in stop for p in rock.pos):
-        rock.set_z(rock.get_z() - 1)
-    rock.set_z(rock.get_z() + 1)
-    stop = stop.union(rock.pos)
-
-assert len(stop) - floor_len == sum(len(rock.pos) for rock in rocks)
-print(f"Time = {perf_counter() - start}")
-
-supports  = {i:set() for i in range(len(rocks))}
-supported = {i:set() for i in range(len(rocks))}
+# Make the rocks fall
+stopped = set()
+for i, rock in enumerate(rocks):
+    rock.fall(stopped, 0)
+    stopped |= rock.get_points()
+assert number_rock_blocks == len(stopped)
 
 def i_supports(i):
-    rock = rocks[i]
-    above = set()
-    supports = set()
-    for p in rock.pos:
-        x, y, z = p
-        above.add((x, y, z+1))
-
-    if any(p[2] != rock.get_z() for p in rock.pos):
-        max_z = max(above)
-        above = {max_z}
+    copy_rock = deepcopy(rocks[i])
+    copy_rock.set_z(copy_rock.get_z() + 1)
+    i_support = set()
+    for j, rock in enumerate(rocks):
+        if i == j:
+            continue
+        if copy_rock.overlap(rock):
+            i_support.add(j)
     
-    for j, other in enumerate(rocks):
-        if any(p in above for p in other.pos):
-            supports.add(j)
-    
-    return i, supports
+    return (i, i_support)
 
 def can_i_be_removed(i):
     if all(len(supported[j]) > 1 for j in supports[i]):
         return True
     return False
 
-with Pool(6) as pool:
-    res = pool.map(i_supports, range(len(rocks)))
-    for i, supp in res:
+supports  = {i:set() for i in range(len(rocks))}
+supported = {i:set() for i in range(len(rocks))}
+with Pool(12) as pool:
+    for i, supp in pool.map(i_supports, range(len(rocks))):
         supports[i] = supp
         for j in supp:
             supported[j].add(i)
     
-res2 = map(can_i_be_removed, range(len(rocks)))
-can_be_removed = set(i for i, t in enumerate(res2) if t)
+res = [can_i_be_removed(i) for i in supports]
+can_be_removed = set(i for i, t in enumerate(res) if t)
+fall_starters =  set(i for i, t in enumerate(res) if not t)
 p1 = len(can_be_removed)
-
-
-
 print(f"Part 1: {p1}")
 
 p2 = 0
-chain_starters = set(supports.keys()).difference(can_be_removed)
-for i in chain_starters:
-    supports_others = supports[i]
-    score = 0
+for i in fall_starters:
     removed = set()
-    Q = deque(A for A in supports_others if supported[A] == {i})
+    Q = deque(A for A in supports[i] if supported[A] == {i})
     while Q:
-        other = Q.popleft()
-        removed.add(other)
-        score += 1
-        for above in supports[other]:
-            if len(supported[above].difference(removed)) < 1:
+        at = Q.popleft()
+        removed.add(at)
+        for above in supports[at]:
+            if len(supported[above] - removed) < 1:
                 Q.append(above)
 
-    p2 += score
+    p2 += len(removed)
 
 print(f"Part 2: {p2}")
