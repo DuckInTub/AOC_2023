@@ -51,17 +51,20 @@ def next_intersection_dist(start, intersections, slipp=False):
     return dists
 
 def longest_path(start, stop, graph : Dict[Tuple[int, int], Dict[Tuple[int, int], int]]):
-    def dfs(curr, seen):
+    seen = [[False for _ in range(len(data[0]))] for _ in range(len(data))]
+    def dfs(curr):
         if curr == stop:
             return 0
-        seen.add(curr)
         mx = 0
         for new, dist in graph[curr].items():
-            if new not in seen:
-                mx = max(mx, dfs(new, set(seen)) + dist)
+            nr, nc = new
+            if not seen[nr][nc]:
+                seen[nr][nc] = True
+                mx = max(mx, dfs(new)+dist)
+                seen[nr][nc] = False
         return mx
     
-    return dfs(start, set())
+    return dfs(start)
 
 with open(0) as file:
     data = file.read().rstrip().splitlines()
