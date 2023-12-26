@@ -1,160 +1,127 @@
-from itertools import combinations, product
-from math import sqrt
-import numpy as np
+from itertools import combinations, pairwise
 
 def sign(x):
+    if x == 0:
+        return 0
     return round(x / abs(x))
-
-def get_line(string : str):
-    x, y, _, dx, dy, _ = tuple(int(x) for x in string.replace("@", ",").replace(",", "").split())
-    k = dy / dx
-    m = y - k*x
-    sx = sign(dx)
-    sy = sign(dy)
-    return (x, y, sx, sy, k, m)
-
-def intersect(l1, l2):
-    x1, y1, sx1, sy1, a, c = l1
-    x2, y2, sx2, sy2, b, d = l2
-    if a == b:
-        return False
-    x = (d - c) / (a - b)
-    y = a*x + c
-    if sign(x - x1) == sx1 and sign(x - x2) == sx2:
-        if sign(y - y1) == sy1 and sign(y - y2) == sy2:
-            return (x, y)
-    return False
-
-with open(0) as file:
-    data = file.read().rstrip().splitlines()
-
-BOUNDS = (200000000000000, 400000000000000)
-# BOUNDS = (7, 27)
-p1 = 0
-for line1, line2 in combinations(data, 2):
-    l1, l2 = get_line(line1), get_line(line2)
-    if not intersect(l1, l2):
-        continue
-    x, y = intersect(l1, l2)
-    if BOUNDS[0] <= x <= BOUNDS[1] and BOUNDS[0] <= y <= BOUNDS[1]:
-        p1 += 1
-
-print(f"Part 1: {p1}")
 
 def parse(line):
     x, y, z, dx, dy, dz = tuple(int(x) for x in line.replace("@", ",").split(","))
     return (x, y, z), (dx, dy, dz)
 
-def norm(vec):
-    x, y, z = vec
-    L = sqrt(x ** 2 + y ** 2 + z ** 2)
-    return tuple(c / L for c in vec)
+def ray_intersect_2d(line1, line2):
+    (x1, y1, _), (dx1, dy1, _) = line1
+    (x2, y2, _), (dx2, dy2, _) = line2
+    if dx1 == 0 or dx2 == 0:
+        return False
+    k1 = dy1 / dx1
+    k2 = dy2 / dx2
+    m1 = y1 - k1*x1
+    m2 = y2 - k2*x2
+    if k1 == k2:
+        return False
+    x = (m2 - m1) / (k1 - k2)
+    y = k1*x + m1
+    if sign(x - x1) == sign(dx1) and sign(x - x2) == sign(dx2) and sign(y - y1) == sign(dy1) and sign(y - y2) == sign(dy2):
+        return (x, y)
+    return False
 
-def sub(v1, v2):
-    return tuple(c1 - c2 for c1, c2 in zip(v1, v2))
+def add_point(p1, p2):
+    return tuple(c1 + c2 for c1, c2 in zip(p1, p2))
 
-# The rock we throws starting position P and its velocity V
-# Needs to be able to form euqations P+N*V = H + N*HV
-# For all hail stones H with velocity HV
-# such that N is an positive integer.
-pairs = []
+def sub_points(p1, p2):
+    return tuple(c1 - c2 for c1, c2 in zip(p1, p2))
+
+def mul_point(c, p1):
+    return tuple(c*c1 for c1 in p1)
+
+def alternating(x):
+    for i in range(x):
+        yield i
+        yield -i
+
+with open(0) as file:
+    data = file.read().rstrip().splitlines()
+
+BOUNDS = (200000000000000, 400000000000000)
+p1 = 0
 for line1, line2 in combinations(data, 2):
-    (_, _, _), (x, y, z) = parse(line1)
-    (_, _, _), (dx, dy, dz) = parse(line2)
-    n1 = norm((x, y, z))
-    n2 = norm((dx, dy, dz))
-    if all(abs(c) < 0.0001 for c in sub(n1, n2)):
-        pairs.append((line1, line2))
-        print(n1)
-        print(n2)
-        print(f"Line 1: {line1}, Line 2: {line2}")
-        print()
-    
-print(len(pairs))
-print("--------Part 2---------")
+    (x1, y1, _), (dx1, dy1, _) = parse(line1)
+    (x2, y2, _), (dx2, dy2, _) = parse(line2)
+    if (xy := ray_intersect_2d(parse(line1), parse(line2))):
+        x, y = xy
+        if BOUNDS[0] <= x <= BOUNDS[1] and BOUNDS[0] <= y <= BOUNDS[1]:
+            p1 += 1
 
-use = data[:3]
-best = (0, 0, 0)
-mn = 10 ** 50
-best_sol = [10 ** 8]*2*len(use)
-for vx in range(312-25, 312+25, 1):
-    for vy in range(-116-25, -116+25, 1):
-        for vz in range(109-25, 109+25, 1):
-            # vx, vy, vz = -3, 1, 2
-            rows = []
-            consts = []
-            L = 3*len(use)
-            for i in range(len(use)):
-                (x, y, z), (dx, dy, dz) = parse(use[i])
+print(f"Part 1: {p1}")
 
-                row = [0]*(3+len(use))
-                row[0] = 1
-                row[3+i] = vx-dx
-                consts.append(x)
-                rows.append(row)
-
-                row = [0]*(3+len(use))
-                row[1] = 1
-                row[3+i] = vy-dy
-                consts.append(y)
-                rows.append(row)
-
-                row = [0]*(3+len(use))
-                row[2] = 1
-                row[3+i] = vz-dz
-                consts.append(z)
-                rows.append(row)
+def get_XY():
+    mn = 10 ** 8
+    for vx in alternating(500):
+        for vy in alternating(500):
+            good = True
+            intersections = []
+            line1 = data[0]
+            for line2 in data[1:]:
+                (x1, y1, _), (dx1, dy1, _) = parse(line1)
+                (x2, y2, _), (dx2, dy2, _) = parse(line2)
+                dx1, dy1 = dx1-vx, dy1-vy
+                dx2, dy2 = dx2-vx, dy2-vy
+                intersect = ray_intersect_2d(((x1, y1, 0), (dx1, dy1, 0)), ((x2, y2, 0), (dx2, dy2, 0)))
+                if not intersect:
+                    good = False
+                    break
+                intersections.append(intersect)
             
-            mat = np.array(rows)
-            consts = np.array(consts)
-            try:
-                sol_pos, *rest = np.linalg.lstsq(mat, consts, rcond=1)
-                thing = rest[0][0]
-            except np.linalg.LinAlgError as e:
-                continue
-            if thing < mn:
-                best_sol = sol_pos
-                print(rest)
-                best = (vx, vy, vz)
-                print(best)
-                mn = thing
-                print(thing)
+            if good:
+                err = sum(abs(x) for x, _ in [(sub_points(p1, p2)) for p1, p2 in pairwise(intersections)])
+                err_arr = [abs(x) for x, _ in [(sub_points(p1, p2)) for p1, p2 in pairwise(intersections)]]
+                if err <= mn:
+                    print(err_arr)
+                    print(err)
+                    mn = err
+                    intersections.sort(key=lambda x : (x[0]-int(x[0]), x[1]-int(x[1])))
+                    px, py = intersections[0]
+                    bvx, bvy = vx, vy
+                    if err == 0:
+                        return (px, py), (vx, vy)
 
-print("------------------------")
-print("Min error: ", mn)
-print(best)
-print([float(x) for x in best_sol[:3]])
-# p2 = None
-# print(f"Part 2: {p2}")
-vx, vy, vz = (312, -116, 109)
-rows = []
-consts = []
-L = 3*len(use)
-for i in range(len(use)):
-    (x, y, z), (dx, dy, dz) = parse(use[i])
+    return (px, py), (bvx, bvy)
 
-    row = [0]*(3+len(use))
-    row[0] = 1
-    row[3+i] = vx-dx
-    consts.append(x)
-    rows.append(row)
+(p_x, p_y), (bvx, bvy) = get_XY()
+print(bvx, bvy)
+print(p_x, p_y)
+assert int(p_x) == p_x and int(p_y) == p_y
+p_x, p_y = int(p_x), int(p_y)
 
-    row = [0]*(3+len(use))
-    row[1] = 1
-    row[3+i] = vy-dy
-    consts.append(y)
-    rows.append(row)
+# From here we have two unknowns:
+# The Z of the starting position
+# The Z of the velocity
+# These can easily be found by solving
+# a system of linear equations!
 
-    row = [0]*(3+len(use))
-    row[2] = 1
-    row[3+i] = vz-dz
-    consts.append(z)
-    rows.append(row)
+eqs = []
+for i, line in enumerate(data[:2]):
+    (x1, y1, z1), (dx1, dy1, dz1) = parse(line)
+    N1 = (p_x - x1) / (dx1 - bvx)
+    # assert N1 == (p_y - y1) / (dy1 - bvy)
+    hit_rock = add_point((x1, y1, z1), mul_point(N1, (dx1, dy1, dz1)))
+    print(f"{i}. Z + {N1}*V = {hit_rock[-1]}")
+    eqs.append((N1, hit_rock[-1]))
 
-mat = np.array([row[:5] for row in rows][:5])
-print(mat)
-consts = np.array(consts[:5])
-sol = np.linalg.solve(mat, consts)
-sol = [float(x) for x in sol[:3]]
-assert all(int(x) == x for x in sol)
-print(sum([int(x) for x in sol[:3]]))
+C1, S1 = eqs[0]
+C2, S2 = eqs[1]
+#  Z + C1*V = S1
+#  Z + C2*V = S2
+#  C1*V - C2*V = S1 - S2
+#  V*(C1 - C2) = S1 - S2
+#  V = (S1 - S2) / (C1 - C2)
+#  Z = S1 - C1*V
+vz = (S1 - S2) / (C1 - C2)
+p_z = S1 - C1*vz
+
+print(f"Start at {(p_x, p_y, int(p_z))}")
+print(f"With velocity {(bvx, bvy, vz)}")
+S = sum((p_x, p_y, p_z))
+assert int(S) == S
+print(f"Part 2: {int(S)}")
