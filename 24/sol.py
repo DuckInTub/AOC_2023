@@ -1,4 +1,6 @@
-from itertools import combinations, pairwise
+from itertools import combinations, pairwise, permutations, product
+from decimal import Decimal
+import decimal
 
 def sign(x):
     if x == 0:
@@ -6,7 +8,7 @@ def sign(x):
     return round(x / abs(x))
 
 def parse(line):
-    x, y, z, dx, dy, dz = tuple(int(x) for x in line.replace("@", ",").split(","))
+    x, y, z, dx, dy, dz = tuple(Decimal(x) for x in line.replace("@", ",").split(","))
     return (x, y, z), (dx, dy, dz)
 
 def ray_intersect_2d(line1, line2):
@@ -23,7 +25,7 @@ def ray_intersect_2d(line1, line2):
     x = (m2 - m1) / (k1 - k2)
     y = k1*x + m1
     if sign(x - x1) == sign(dx1) and sign(x - x2) == sign(dx2) and sign(y - y1) == sign(dy1) and sign(y - y2) == sign(dy2):
-        return (x, y)
+        return (x, y), (k1, m1), (k2, m2)
     return False
 
 def add_point(p1, p2):
@@ -49,46 +51,45 @@ for line1, line2 in combinations(data, 2):
     (x1, y1, _), (dx1, dy1, _) = parse(line1)
     (x2, y2, _), (dx2, dy2, _) = parse(line2)
     if (xy := ray_intersect_2d(parse(line1), parse(line2))):
-        x, y = xy
+        (x, y), *_ = xy
         if BOUNDS[0] <= x <= BOUNDS[1] and BOUNDS[0] <= y <= BOUNDS[1]:
             p1 += 1
 
 print(f"Part 1: {p1}")
 
-def get_XY():
-    mn = 10 ** 8
-    for vx in alternating(500):
-        for vy in alternating(500):
-            good = True
-            intersections = []
-            line1 = data[0]
-            for line2 in data[1:]:
-                (x1, y1, _), (dx1, dy1, _) = parse(line1)
-                (x2, y2, _), (dx2, dy2, _) = parse(line2)
-                dx1, dy1 = dx1-vx, dy1-vy
-                dx2, dy2 = dx2-vx, dy2-vy
-                intersect = ray_intersect_2d(((x1, y1, 0), (dx1, dy1, 0)), ((x2, y2, 0), (dx2, dy2, 0)))
-                if not intersect:
-                    good = False
-                    break
-                intersections.append(intersect)
-            
-            if good:
-                err = sum(abs(x) for x, _ in [(sub_points(p1, p2)) for p1, p2 in pairwise(intersections)])
-                err_arr = [abs(x) for x, _ in [(sub_points(p1, p2)) for p1, p2 in pairwise(intersections)]]
-                if err <= mn:
-                    print(err_arr)
-                    print(err)
-                    mn = err
-                    intersections.sort(key=lambda x : (x[0]-int(x[0]), x[1]-int(x[1])))
-                    px, py = intersections[0]
-                    bvx, bvy = vx, vy
-                    if err == 0:
-                        return (px, py), (vx, vy)
+def get_XY(magintude_limit):
+    for vx, vy in product(alternating(magintude_limit), repeat=2):
+        good = True
+        intersections = []
+        line1 = data[0]
+        lines = []
+        for line2 in data[1:]:
+            (x1, y1, z1), (dx1, dy1, dz1) = parse(line1)
+            (x2, y2, z2), (dx2, dy2, dz2) = parse(line2)
+            dx1, dy1 = dx1-vx, dy1-vy
+            dx2, dy2 = dx2-vx, dy2-vy
+            intersect = ray_intersect_2d(((x1, y1, 0), (dx1, dy1, 0)), ((x2, y2, 0), (dx2, dy2, 0)))
+            if not intersect:
+                good = False
+                break
+            intersect, (k1, m1), (k2, m2) = intersect
+            intersections.append(intersect)
+            lines.append([(k1, m1), (k2, m2)])
+        if good:
+            err = sum(abs(x) for x, _ in [(sub_points(p1, p2)) for p1, p2 in pairwise(intersections)])
+            # err_arr = [abs(x) for x, _ in [(sub_points(p1, p2)) for p1, p2 in pairwise(intersections)]]
+            if err < 0.1:
+                # err_arr.sort()
+                # print(len(err_arr), ":", err_arr)
+                # print(lines)
+                # print(err)
+                px, py = min(intersections, key=lambda x : (x[0]-int(x[0]), x[1]-int(x[1])))
+                bvx, bvy = vx, vy
+                return (px, py), (vx, vy)
 
     return (px, py), (bvx, bvy)
 
-(p_x, p_y), (bvx, bvy) = get_XY()
+(p_x, p_y), (bvx, bvy) = get_XY(400)
 print(bvx, bvy)
 print(p_x, p_y)
 assert int(p_x) == p_x and int(p_y) == p_y
@@ -121,7 +122,7 @@ vz = (S1 - S2) / (C1 - C2)
 p_z = S1 - C1*vz
 
 print(f"Start at {(p_x, p_y, int(p_z))}")
-print(f"With velocity {(bvx, bvy, vz)}")
+print(f"With velocity {(bvx, bvy, int(vz))}")
 S = sum((p_x, p_y, p_z))
 assert int(S) == S
 print(f"Part 2: {int(S)}")
